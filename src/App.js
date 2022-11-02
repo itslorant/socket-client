@@ -1,23 +1,55 @@
-import logo from './logo.svg';
-import './App.css';
 
+import './App.css';
+import React, { useState, useEffect } from 'react';
+import io from 'socket.io-client';
+const socket = io('http://localhost:3000/forecast', {transports: ['websocket']});
 function App() {
+  const [isConnected, setIsConnected] = useState(socket.connected);
+  const [lastPong, setLastPong] = useState(null);
+
+  useEffect(() => {
+    socket.on('connect', () => {
+      setIsConnected(true);
+    });
+
+    socket.on('budapest', (msg)=>{
+      console.log(msg)
+    })
+
+    socket.on('disconnect', () => {
+      setIsConnected(false);
+    });
+
+    socket.on('pong', () => {
+      setLastPong(new Date().toISOString());
+    });
+
+    return () => {
+      socket.off('connect');
+      socket.off('disconnect');
+      socket.off('pong');
+    };
+  }, []);
+
+  const sendPing = () => {
+    socket.emit('ping');
+  }
+  
+  const joinRoom = () =>{
+    socket.emit('joinRoom', 'Budapest');
+  }
+
+  const leaveRoom = ( ) =>{
+    socket.emit('leaveRoom', 'Budapest');
+  }
+
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
+    <div>
+      <p>Connected: { '' + isConnected }</p>
+      <p>Last pong: { lastPong || '-' }</p>
+      <button onClick={ sendPing }>Send ping</button>
+      <button onClick={joinRoom}> Leave</button>
+      <button onClick={leaveRoom}> Join</button>
     </div>
   );
 }
